@@ -1,0 +1,108 @@
+/* ---- Chip ---- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+.chip--dot {
+  color: inherit;
+}
+.chip__dot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: var(--chip-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--chip-color) 22%, transparent);
+  flex: none;
+}
+.chip--filled {
+  padding: 0.35em 0.7em;
+  background: var(--chip-color);
+  color: #fff;
+}
+.chip--outline {
+  padding: 0.32em 0.7em;
+  border: 1.5px solid var(--chip-color);
+  color: var(--chip-color);
+}
+
+/* ---- Copy button ---- */
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.copy-btn:hover {
+  border-color: var(--cmu-red);
+  color: var(--cmu-red);
+}
+.copy-btn.is-copied {
+  border-color: var(--c-adapted);
+  color: var(--c-adapted);
+}
+.dark .copy-btn {
+  background: var(--void-raised);
+  border-color: var(--rule-dark-strong);
+  color: var(--chalk-soft);
+}
+
+/* ---- Segmented control ---- */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: var(--paper-sunken);
+  border: 1px solid var(--rule);
+}
+.dark .segmented {
+  background: var(--void-sunken);
+  border-color: var(--rule-dark);
+}
+.segmented__opt {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1.05rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.dark .segmented__opt {
+  color: var(--chalk-soft);
+}
+.segmented__opt:hover {
+  color: var(--ink);
+}
+.dark .segmented__opt:hover {
+  color: var(--chalk);
+}
+.segmented__opt[aria-checked='true'] {
+  background: var(--paper-raised);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.dark .segmented__opt[aria-checked='true'] {
+  background: var(--void-raised);
+  color: var(--chalk);
+  box-shadow: none;
+}

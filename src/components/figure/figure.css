@@ -1,0 +1,211 @@
+/* ============ FIGURE ============ */
+.figure {
+  margin: 0 auto;
+}
+
+/* ---- tasteful eyebrow label (no mac-window dots) ---- */
+.figure__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: var(--sp-3);
+}
+.figure__bar-rule {
+  width: 1.8rem;
+  height: 2px;
+  background: var(--cmu-red);
+  border-radius: 2px;
+}
+.figure__bar-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.dark .figure__bar-label {
+  color: var(--chalk-faint);
+}
+
+/*
+ * plate: the white-bg diagram matted on a warm tinted panel with a quiet
+ * dot-grid behind it, generous padding, a hairline, and soft warm stacked
+ * shadows. (Research: "deliberate card" + tinted panel + graph-paper texture.)
+ */
+.figure__plate {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  padding: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+  background: var(--paper-sunken);
+  box-shadow:
+    inset 0 0 0 1px rgba(26, 23, 20, 0.06),
+    0 1px 2px rgba(26, 23, 20, 0.04),
+    0 8px 24px rgba(26, 23, 20, 0.08);
+}
+.dark .figure__plate {
+  background: var(--void-sunken);
+  box-shadow:
+    inset 0 0 0 1px var(--rule-dark),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+/* quiet graph-paper texture behind the figure */
+.figure__grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(26, 23, 20, 0.1) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 55%, transparent 100%);
+  pointer-events: none;
+}
+.dark .figure__grid {
+  background-image: radial-gradient(rgba(244, 239, 231, 0.08) 1px, transparent 1px);
+}
+.figure--bare .figure__plate {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+.figure--bare .figure__grid {
+  display: none;
+}
+
+.figure__img {
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid var(--rule);
+  box-shadow: 0 2px 4px rgba(26, 23, 20, 0.05), 0 12px 28px rgba(26, 23, 20, 0.09);
+  padding: clamp(0.5rem, 0.3rem + 1vw, 1.1rem);
+}
+
+.figure__caption {
+  margin-top: var(--sp-5);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 76ch;
+  margin-inline: auto;
+  text-align: center;
+}
+.dark .figure__caption {
+  color: var(--chalk-faint);
+}
+.figure__caption b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.dark .figure__caption b {
+  color: var(--chalk-soft);
+}
+
+/* reveal */
+.figure {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+.figure.is-inview {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .figure {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============ METHOD STAGES (3) ============ */
+.method-stages {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-5);
+  margin-bottom: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+}
+.stage {
+  position: relative;
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(140% 120% at 0% 0%, color-mix(in srgb, var(--stage-color) 9%, transparent), transparent 55%),
+    var(--paper-raised);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+.stage:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+/* big ghost numeral */
+.stage__num {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-4);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--stage-color);
+  opacity: 0.16;
+  font-variation-settings: 'opsz' 144, 'WONK' 1;
+}
+.stage__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stage-color);
+  margin-bottom: var(--sp-4);
+}
+.stage__kicker::before {
+  content: '';
+  width: 1.6rem;
+  height: 2px;
+  background: var(--stage-color);
+}
+.stage__title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 540;
+  margin-bottom: var(--sp-3);
+  letter-spacing: -0.015em;
+  font-variation-settings: 'opsz' 60, 'SOFT' 20;
+}
+.stage__body {
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+/* connector between cards */
+.stage__arrow {
+  position: absolute;
+  top: 50%;
+  right: calc(-0.5 * var(--sp-5) - 13px);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+@media (max-width: 880px) {
+  .method-stages {
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
+  .stage__arrow {
+    top: auto;
+    right: 50%;
+    bottom: calc(-0.5 * var(--sp-4) - 13px);
+    transform: translateX(50%) rotate(90deg);
+  }
+}
