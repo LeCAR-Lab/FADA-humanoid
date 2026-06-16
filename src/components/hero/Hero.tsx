@@ -24,7 +24,7 @@ export function Hero() {
       <div className="hero__glow" aria-hidden="true" />
 
       <Container width="wide">
-        <p className="eyebrow hero__venue">{SITE.venue} &nbsp;·&nbsp; {LAB.institution}</p>
+        <p className="eyebrow hero__venue">{LAB.institution}</p>
 
         <h1 className="hero__title">
           <span className="hero__acronym">FADA</span>

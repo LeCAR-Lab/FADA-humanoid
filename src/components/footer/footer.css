@@ -31,9 +31,6 @@
   line-height: 1.4;
   margin-bottom: var(--sp-2);
 }
-.footer__venue {
-  color: var(--chalk-faint);
-}
 
 .footer__logos {
   display: flex;

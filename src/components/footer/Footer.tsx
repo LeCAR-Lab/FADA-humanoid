@@ -13,7 +13,6 @@ export function Footer() {
           <div className="footer__brand">
             <span className="footer__acronym">FADA</span>
             <p className="footer__line">{SITE.title}</p>
-            <p className="footer__venue eyebrow">{SITE.venue}</p>
           </div>
 
           <div className="footer__logos">

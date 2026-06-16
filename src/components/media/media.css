@@ -119,7 +119,11 @@
   border: 1px solid var(--rule-dark);
   background: #000;
   box-shadow: var(--shadow-dark);
-  aspect-ratio: 16 / 11;
+  /* default landscape box; overridden inline once the video's real ratio loads */
+  aspect-ratio: 16 / 9;
+  /* cap height so a portrait clip doesn't make the row absurdly tall */
+  max-height: 64vh;
+  margin-inline: auto;
 }
 .vpane--emph .vpane__frame {
   border-color: var(--pane-color);
@@ -130,8 +134,13 @@
 .vpane__video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain = always show the whole frame (letterbox), never crop */
+  object-fit: contain;
   display: block;
+}
+/* portrait clips: keep the frame from getting too wide so it stays a sensible size */
+.vpane--portrait .vpane__frame {
+  max-width: min(100%, 340px);
 }
 .vpane__chip {
   position: absolute;
@@ -265,7 +274,8 @@
     grid-template-columns: 1fr;
     gap: var(--sp-5);
   }
-  .vpane__frame {
-    aspect-ratio: 16 / 10;
+  /* stacked single column: portrait clips can be a bit larger */
+  .vpane--portrait .vpane__frame {
+    max-width: min(100%, 420px);
   }
 }

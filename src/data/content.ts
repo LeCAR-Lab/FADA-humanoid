@@ -3,7 +3,8 @@ import type { HeroStat, MethodStage } from './types'
 export const SITE = {
   acronym: 'FADA',
   title: 'Few-Shot Domain Adaptation via Dynamics Alignment for Humanoid Control',
-  venue: 'CoRL 2026',
+  // Venue intentionally omitted until acceptance. To show it later, add e.g.
+  // `venue: 'CoRL 2026'` here and render it in Hero.tsx / Footer.tsx.
   tagline:
     'A Planner–Inverse Dynamics Model framework that adapts humanoid robots to new dynamics from about two minutes of target-domain rollouts — no rewards, no accurate prior model.',
 }
@@ -54,11 +55,10 @@ export const ARCHITECTURE_BODY =
 export const DATA_COLLECTION_BODY =
   'FADA adapts from ordinary target-domain rollouts collected by executing the source-trained policy. Supervision is just the paired proprioceptive observations and executed actions from the same rollout windows — no reward, labeling, privileged state, or off-policy dataset is required.'
 
-// TODO: replace with the final arXiv BibTeX entry once the paper is public.
-export const BIBTEX = `@inproceedings{xie2026fada,
-  title     = {FADA: Few-Shot Domain Adaptation via Dynamics Alignment for Humanoid Control},
-  author    = {Xie, Angchen and Sobanbabu, Nikhil and Shikhare, Ishayu and Wang, Alan and Simchowitz, Max and Shi, Guanya},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2026},
-  note      = {arXiv preprint — link coming soon},
+// Venue intentionally omitted until acceptance. Swap to the final @inproceedings
+// entry (with booktitle/year) once the paper is public.
+export const BIBTEX = `@misc{fada,
+  title  = {FADA: Few-Shot Domain Adaptation via Dynamics Alignment for Humanoid Control},
+  author = {Xie, Angchen and Sobanbabu, Nikhil and Shikhare, Ishayu and Wang, Alan and Simchowitz, Max and Shi, Guanya},
+  note   = {Preprint — link coming soon},
 }`
