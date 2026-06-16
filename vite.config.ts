@@ -18,4 +18,12 @@ export default defineConfig({
   plugins: [react()],
   server: { headers: crossOriginIsolation },
   preview: { headers: crossOriginIsolation },
+  // .onnx policy models are loaded at runtime from public/ via fetch — treat any
+  // that get imported as static assets (belt-and-suspenders; we fetch by URL).
+  assetsInclude: ['**/*.onnx'],
+  optimizeDeps: {
+    // The MuJoCo Emscripten glue is a large hand-built ESM bundle that esbuild's
+    // dep pre-bundling chokes on; load it as-is. (It's lazy-imported anyway.)
+    exclude: ['@mujoco/mujoco'],
+  },
 })

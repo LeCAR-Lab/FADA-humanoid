@@ -1,6 +1,7 @@
 import { Hero } from './components/hero/Hero'
 import { Nav } from './components/layout/Nav'
 import { Footer } from './components/footer/Footer'
+import { OverviewSection } from './components/sections/OverviewSection'
 import { AbstractSection } from './components/sections/AbstractSection'
 import { MethodSection } from './components/sections/MethodSection'
 import { ArchitectureSection } from './components/sections/ArchitectureSection'
@@ -12,9 +13,9 @@ import MujocoViewerSection from './phase2/MujocoViewerSection'
 
 /**
  * Page composition. Section order:
- * Hero → Abstract → Method → Architecture → [dark] Results video →
- * [dark] Quantitative → Data collection → [dark] Phase-2 viewer (placeholder) →
- * Citation → Footer.
+ * Hero → [dark] Overview video → Abstract → Method → Architecture →
+ * [dark] Results video → [dark] Quantitative → Data collection →
+ * [dark] Phase-2 viewer → Citation → Footer.
  */
 export function App() {
   return (
@@ -22,6 +23,7 @@ export function App() {
       <Nav />
       <Hero />
       <main>
+        <OverviewSection />
         <AbstractSection />
         <MethodSection />
         <ArchitectureSection />

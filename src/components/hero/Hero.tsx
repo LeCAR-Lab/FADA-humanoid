@@ -28,16 +28,13 @@ export function Hero() {
 
         <h1 className="hero__title">
           <span className="hero__acronym">FADA</span>
-          <span className="hero__subtitle">{SITE.title}</span>
+          <span className="hero__subtitle" aria-label={SITE.title}>
+            <i className="hero__hl">F</i>ew-Shot Domain{' '}
+            <i className="hero__hl">A</i>daptation via{' '}
+            <i className="hero__hl">D</i>ynamics{' '}
+            <i className="hero__hl">A</i>lignment for Humanoid Control
+          </span>
         </h1>
-
-        <p className="hero__expand">
-          <span><b>F</b>ew-Shot</span>
-          <span><b>D</b>omain</span>
-          <span><b>A</b>daptation via</span>
-          <span><b>D</b>ynamics</span>
-          <span><b>A</b>lignment</span>
-        </p>
 
         <p className="hero__tagline">{SITE.tagline}</p>
 

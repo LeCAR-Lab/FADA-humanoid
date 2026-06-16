@@ -99,3 +99,20 @@
   top: var(--sp-3);
   right: var(--sp-3);
 }
+
+/* ── Overview video (narrated summary, dark band, full-width with controls) ── */
+.overview-video {
+  margin: 0 auto;
+  max-width: 1000px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--rule-dark);
+  background: #000;
+  box-shadow: var(--shadow);
+}
+.overview-video__el {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}

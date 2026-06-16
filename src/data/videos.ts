@@ -103,3 +103,6 @@ export function videoPath(taskId: string, condition: ConditionMeta): string {
 }
 
 export const DATA_COLLECTION_VIDEO = assetUrl('videos/data_collection.mp4')
+
+/** Narrated ~1.5 min overview/summary video (has audio — play with sound). */
+export const OVERVIEW_VIDEO = assetUrl('videos/fada-overview.mp4')
