@@ -19,6 +19,13 @@ import {
   DEFAULT_TARGET,
   type PayloadKey,
 } from './reachData'
+import {
+  detectCapabilities,
+  classifyInitError,
+  failureHeadline,
+  failureHint,
+  type ReachError,
+} from './diagnostics'
 import './reach.css'
 
 type Status = 'loading' | 'ready' | 'error'
@@ -40,6 +47,8 @@ export default function ReachDemo() {
   const reducedMotion = usePrefersReducedMotion()
 
   const [status, setStatus] = useState<Status>('loading')
+  const [failure, setFailure] = useState<ReachError | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
   const [payload, setPayload] = useState<PayloadKey>('0')
   const [playing, setPlaying] = useState(false)
   const [autoTour, setAutoTour] = useState(false)
@@ -51,6 +60,12 @@ export default function ReachDemo() {
   // state update so the panel refreshes at ~PANEL_FPS instead of 60 fps.
   useEffect(() => {
     if (!beforeCanvasRef.current || !afterCanvasRef.current) return
+    // Probe the hard requirements first so a genuine WebGL2/WASM gap is reported
+    // accurately (rather than guessed) — and so we don't even try to build the
+    // sim on a device that can't run it.
+    const caps = detectCapabilities()
+    setStatus('loading')
+    setFailure(null)
     let lastPanel = 0
     let lastTarget = 0
     const ctrl = new ReachController({
@@ -86,8 +101,15 @@ export default function ReachDemo() {
         }
       })
       .catch((err) => {
-        console.error('[ReachDemo] init failed:', err)
-        if (!cancelled) setStatus('error')
+        const classified = classifyInitError(err, caps)
+        console.error(
+          `[ReachDemo] init failed (${classified.kind}; webgl2=${caps.webgl2} wasm=${caps.wasm}):`,
+          err,
+        )
+        if (!cancelled) {
+          setFailure(classified)
+          setStatus('error')
+        }
       })
     return () => {
       cancelled = true
@@ -95,7 +117,7 @@ export default function ReachDemo() {
       controllerRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [retryKey])
 
   // Pause when scrolled offscreen; resume when back (only if user had it playing).
   const wasPlayingRef = useRef(false)
@@ -153,6 +175,9 @@ export default function ReachDemo() {
     setTarget([...DEFAULT_TARGET])
   }
 
+  // Re-run the init effect from scratch (clears any transient failure).
+  const onRetry = () => setRetryKey((k) => k + 1)
+
   // Slider drag → set one axis of the target (stops the auto-tour, like dragging).
   const onSlider = (axis: number, value: number) => {
     const next: [number, number, number] = [...target]
@@ -168,8 +193,16 @@ export default function ReachDemo() {
   return (
     <div className="reach" ref={wrapRef}>
       {status === 'error' && (
-        <div className="reach__fallback">
-          <p>This interactive demo needs WebGL2 and WebAssembly. It runs best on a desktop browser.</p>
+        <div className="reach__fallback" role="alert">
+          <p className="reach__fallback-head">{failureHeadline(failure?.kind ?? 'unknown')}</p>
+          <p className="reach__fallback-hint">{failureHint(failure?.kind ?? 'unknown')}</p>
+          {failure?.detail && (
+            <details className="reach__fallback-detail">
+              <summary>Technical details</summary>
+              <code>{failure.detail}</code>
+            </details>
+          )}
+          <button className="reach__btn" onClick={onRetry}>↻ Retry</button>
         </div>
       )}
 
@@ -250,8 +283,9 @@ export default function ReachDemo() {
 
       <p className="reach__hint">
         Drag the amber target in either view — or use the X / Y / Z sliders — to set the hand's goal
-        (kept within the arm's reachable workspace). The faint arm is the planner's predicted next pose;
-        Reset returns to the home target.
+        across the arm's reachable workspace. The cyan dot is the hand (end-effector); the faint arm is
+        the planner's predicted next pose. The ground arrow marks the front of the fixed torso. Reset
+        returns to the home target and view.
       </p>
     </div>
   )
@@ -292,7 +326,8 @@ function SidePanel({ before, after }: { before: ArmReadout; after: ArmReadout })
           <li><span className="reach__dot reach__dot--baseline" /> Solid arm (red) — FADA-zs</li>
           <li><span className="reach__dot reach__dot--adapted" /> Solid arm (green) — FADA</li>
           <li><span className="reach__dot reach__dot--ghost" /> Faint arm — planner's prediction</li>
-          <li><span className="reach__dot reach__dot--target" /> Sphere — end-effector target</li>
+          <li><span className="reach__dot reach__dot--target" /> Amber sphere — end-effector target</li>
+          <li><span className="reach__dot reach__dot--ee" /> Cyan dot — hand (end-effector)</li>
         </ul>
       </section>
 

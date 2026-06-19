@@ -11,7 +11,9 @@
  *   action, plannerPred = onnx(armPos, armVel, eeTarget)
  *   q_target = DEFAULT_ARM_POS + action * ACTION_SCALE
  *   repeat SUBSTEPS:  lock();  ctrl[arm] = clip(KP*(q_target-q) - KD*qvel);  mj_step
- *   EE error = ||(palm_world - base_world) - eeTarget||
+ *   EE error = ||(wrist_world - base_world) - eeTarget||   (left_wrist_yaw_link body
+ *              — the EE definition used by the training reach manager and the
+ *              deployment metric, NOT the rubber-hand palm site)
  *   ghost    = FK(plannerPred): set arm qpos, mj_kinematics, read, restore
  */
 import type { MainModule } from './mujocoLoader'
@@ -23,13 +25,13 @@ import {
   ARM_ACT_START,
   ARM_DOF,
   ARM_BODY_NAMES,
-  EE_SITE,
   EE_BODY,
   BASE_BODY,
   BASE_HEIGHT,
   DEFAULT_ARM_POS,
 } from './reachModel'
 import { ACTION_SCALE, KP, KD, CTRL_RANGE, SUBSTEPS, DISPLAY_SMOOTH } from './reachData'
+import { fetchAsset } from './diagnostics'
 
 export interface BodyXform {
   pos: [number, number, number]
@@ -57,7 +59,6 @@ export class ReachArm {
   private model: MjModel | null = null
   private data: MjData | null = null
   private modelXml = ''
-  private siteId = -1
   private baseBodyId = -1
   private wristBodyId = -1
   private armBodyIds: number[] = []
@@ -84,7 +85,7 @@ export class ReachArm {
 
   /** Fetch the MJCF, build the model + data, and load the policy ONNX. */
   async init(modelUrl: string): Promise<void> {
-    this.modelXml = await (await fetch(REACH_MODEL_URL)).text()
+    this.modelXml = await (await fetchAsset(REACH_MODEL_URL)).text()
     this.buildModel()
     await this.policy.load(modelUrl)
   }
@@ -105,7 +106,6 @@ export class ReachArm {
     this.data = new mj.MjData(this.model)
     if (this.payloadKg > 0) mj.mj_setConst(this.model, this.data)
 
-    this.siteId = mj.mj_name2id(this.model, mj.mjtObj.mjOBJ_SITE.value, EE_SITE)
     this.baseBodyId = mj.mj_name2id(this.model, mj.mjtObj.mjOBJ_BODY.value, BASE_BODY)
     this.armBodyIds = ARM_BODY_NAMES.map((b) => mj.mj_name2id(this.model!, mj.mjtObj.mjOBJ_BODY.value, b))
     this.qpos0 = Float64Array.from(this.model.qpos0 as ArrayLike<number>)
@@ -240,9 +240,10 @@ export class ReachArm {
     mj.mj_kinematics(model, data)
 
     const solid = this.readBodyXforms()
-    const sx = data.site_xpos
+    // EE = left_wrist_yaw_link body origin (training/deploy EE definition), NOT the
+    // rubber-hand palm site. This is what the recorded RMS numbers are measured at.
     const bx = data.xpos
-    const ee: [number, number, number] = [sx[this.siteId * 3], sx[this.siteId * 3 + 1], sx[this.siteId * 3 + 2]]
+    const ee: [number, number, number] = [bx[this.wristBodyId * 3], bx[this.wristBodyId * 3 + 1], bx[this.wristBodyId * 3 + 2]]
     const base: [number, number, number] = [bx[this.baseBodyId * 3], bx[this.baseBodyId * 3 + 1], bx[this.baseBodyId * 3 + 2]]
     const eeRel: [number, number, number] = [ee[0] - base[0], ee[1] - base[1], ee[2] - base[2]]
     const dx = eeRel[0] - eeTarget[0]

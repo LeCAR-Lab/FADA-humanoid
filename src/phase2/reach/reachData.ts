@@ -61,16 +61,19 @@ export const RECORDED_RMS: Record<PayloadKey, { before: number; after: number }>
 }
 
 // ── EE target workspace (base-relative metres) ────────────────────────────────
-// Tightened to the policy's *calm* reachable envelope. Outside this box the
-// Planner–IDM was never trained and limit-cycles (the arm visibly "shakes" —
-// ~15–22 mm/step at the +x / low-z / extreme-y / high-z corners). Both dragging
-// and the sliders are clamped to this box so the user can't command those
-// unstable poses. A workspace jitter scan (both models @ 5 kg, EMA 0.85) keeps
-// the worst displayed motion inside the box to ≈2 mm/step (imperceptible).
+// Materially wider than the old calm box (old: x[-0.28,0.1] y[0.12,0.28]
+// z[0.16,0.28]) now that the action-history buffer fix removed the off-center
+// limit-cycle buzz (see [[reach-policy-buffer-convention]]). Bounds are set to
+// where the arm *visibly reaches* (a reachability scan of the After model): the
+// arm reaches well across −0.32 ≤ x ≤ +0.18 but genuinely falls short past
+// x≈+0.25 (the far forward corner is outside the kinematic envelope and would
+// just look broken), so +x is capped tighter than −x. A steady-state jitter scan
+// keeps the visible EE buzz ≲2 mm peak-to-peak across this box; the display EMA
+// damps any residual. Drag + sliders are clamped here.
 export const TARGET_RANGE = {
-  x: [-0.28, 0.1] as [number, number],
-  y: [0.12, 0.28] as [number, number],
-  z: [0.16, 0.28] as [number, number],
+  x: [-0.32, 0.18] as [number, number],
+  y: [0.14, 0.28] as [number, number],
+  z: [0.16, 0.32] as [number, number],
 }
 /** Calm, central reset/home target — Reset always returns here (≈0.07 mm/step). */
 export const DEFAULT_TARGET: [number, number, number] = [-0.18, 0.22, 0.24]
@@ -81,8 +84,13 @@ export function clampTarget(t: ArrayLike<number>): [number, number, number] {
   return [c(t[0], TARGET_RANGE.x), c(t[1], TARGET_RANGE.y), c(t[2], TARGET_RANGE.z)]
 }
 
-/** Display-only EMA smoothing factor for rendered joint angles (0 = none). */
-export const DISPLAY_SMOOTH = 0.85
+/**
+ * Display-only EMA smoothing factor for rendered joint angles (0 = none).
+ * Lower than before (0.85) because the action-history fix removed the underlying
+ * limit-cycle buzz, so the render no longer needs heavy smoothing to look calm —
+ * a lighter EMA keeps the arm responsive while still damping any residual.
+ */
+export const DISPLAY_SMOOTH = 0.6
 
 // ── Auto-tour: predefined EE-target sequences (from commands/*.json) ───────────
 export interface Waypoint {
@@ -92,19 +100,24 @@ export interface Waypoint {
 }
 
 /**
- * Auto-tour waypoints, all inside the calm TARGET_RANGE box so the arm never
- * gets clamped or pushed into a jittery pose mid-tour. A short, varied loop —
- * the arm fully settles at each before advancing.
+ * Auto-tour waypoints — a varied sweep through the trained command envelope,
+ * drawn from the paper's predefined-EE evaluation sequences
+ * (`run_scripts/reach/reach_predefined_ee_example*.json`). Now that the arm is
+ * calm across the whole box (action-history fix), the tour can span the full
+ * forward/up reach instead of hugging the centre. The arm fully settles at each
+ * waypoint before advancing.
  */
 const TOUR_A: Waypoint[] = [
   { x: -0.18, y: 0.22, z: 0.24 }, // home
-  { x: -0.05, y: 0.2, z: 0.22 },
-  { x: 0.08, y: 0.18, z: 0.24 },
-  { x: 0.08, y: 0.26, z: 0.2 },
-  { x: -0.1, y: 0.26, z: 0.26 },
-  { x: -0.26, y: 0.18, z: 0.26 },
-  { x: -0.24, y: 0.14, z: 0.2 },
-  { x: -0.12, y: 0.2, z: 0.18 },
+  { x: 0.05, y: 0.19, z: 0.23 },
+  { x: 0.16, y: 0.18, z: 0.26 },
+  { x: 0.12, y: 0.2, z: 0.3 },
+  { x: -0.02, y: 0.22, z: 0.28 },
+  { x: -0.12, y: 0.19, z: 0.25 },
+  { x: -0.28, y: 0.17, z: 0.25 },
+  { x: -0.22, y: 0.23, z: 0.21 },
+  { x: -0.1, y: 0.26, z: 0.28 },
+  { x: 0.14, y: 0.24, z: 0.22 },
 ]
 
 export const AUTO_TOUR: Waypoint[] = TOUR_A

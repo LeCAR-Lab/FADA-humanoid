@@ -41,9 +41,12 @@ export const ARM_BODY_NAMES = [
   'left_wrist_yaw_link',
 ] as const
 
-/** Site that defines the end-effector (palm) — read `data.site_xpos`. */
-export const EE_SITE = 'left_palm'
-/** Wrist body that carries the payload mass. */
+/**
+ * Body that defines the end-effector. The training reach manager and the
+ * deployment EE metric both use the `left_wrist_yaw_link` body origin (NOT the
+ * rubber-hand `left_palm` site), so the EE marker + reach error read from here.
+ * This body also carries the payload mass.
+ */
 export const EE_BODY = 'left_wrist_yaw_link'
 /** Pelvis (base) body; EE error is measured relative to its world position. */
 export const BASE_BODY = 'pelvis'

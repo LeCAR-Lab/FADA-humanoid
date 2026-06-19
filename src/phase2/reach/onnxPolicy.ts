@@ -1,15 +1,26 @@
 /**
  * In-browser Planner–IDM policy: runs an exported reach ONNX with onnxruntime-web.
  *
- * Mirrors the rolling-history inference in
- * `DeLA/run_scripts/analysis/reach/meshcat_reach_viewer.py::_onnx_step`:
+ * Mirrors the AUTHORITATIVE deployment inference in
+ * `holosoma_inference/policies/locomotion_transformer.py::prepare_obs_for_rl`
+ * (the real sim-to-sim/real path that does NOT shake) — NOT the meshcat viewer,
+ * which uses a different buffer convention and shakes for the same reason this
+ * port used to (see [[reach-policy-buffer-convention]]):
  *   obs   = [arm_pos * POS_SCALE, arm_vel * VEL_SCALE]   (14)
  *   inputs: history_obs[1,H,14], history_act[1,H,7], current_command_tokens[1,H,3],
  *           history_valid_mask[1,H] (bool), teacher_future_obs[1,1,14] (zeros)
  *   outputs: actions[1,_,7] (IDM action), pred_future_obs (planner next obs;
  *            take [:7] / POS_SCALE -> predicted next joint angles in rad)
- * The just-produced action is written back into the last history_act slot, matching
- * the Python reference.
+ *
+ * Two conventions are load-bearing (matching the deploy path kills the shaking):
+ *   1. history_act: the newest slot holds the PREVIOUS action, written BEFORE
+ *      inference. `prevAction` is updated AFTER. (The viewer/this-port's old
+ *      "roll then write the just-produced action into the newest slot after
+ *      inference" feeds the autoregressive IDM a misaligned action history and
+ *      makes it limit-cycle ~35 mm at off-center targets.)
+ *   2. command: the CURRENT command is broadcast into every valid slot (invalid
+ *      slots zeroed), NOT a rolled trail of past targets — so dragging never
+ *      feeds the IDM a smear of stale commands.
  */
 // WASM-only entry (no WebGL/WebGPU/jsep) — keeps the bundle from pulling the 26 MB
 // jsep binary. We self-host the single SIMD wasm, URL resolved by Vite (?url) so it
@@ -26,6 +37,7 @@ import {
   POS_SCALE,
   VEL_SCALE,
 } from './reachData'
+import { fetchAsset } from './diagnostics'
 
 // Single-threaded WASM EP — no SharedArrayBuffer, works on plain GitHub Pages.
 let envConfigured = false
@@ -51,6 +63,10 @@ export class ReachPolicy {
   private readonly histCmd = new Float32Array(H * CMD_DIM)
   private readonly histValid = new Uint8Array(H)
   private readonly teacherZeros = new Float32Array(OBS_DIM)
+  // Previously executed action — goes into the newest history_act slot BEFORE the
+  // next inference (matches the deploy path; do NOT write the produced action into
+  // the newest slot after inference, which is what made the arm shake).
+  private readonly prevAction = new Float32Array(ACT_DIM)
   private inputNames = new Set<string>()
 
   constructor() {
@@ -58,7 +74,7 @@ export class ReachPolicy {
   }
 
   async load(modelUrl: string): Promise<void> {
-    const buf = await (await fetch(modelUrl)).arrayBuffer()
+    const buf = await (await fetchAsset(modelUrl)).arrayBuffer()
     const session = await ort.InferenceSession.create(buf, {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
@@ -75,6 +91,7 @@ export class ReachPolicy {
     this.histAct.fill(0)
     this.histCmd.fill(0)
     this.histValid.fill(0)
+    this.prevAction.fill(0)
   }
 
   /**
@@ -85,7 +102,7 @@ export class ReachPolicy {
    * This wrap-vs-zero distinction is load-bearing: the autoregressive IDM was
    * deployed with np.roll, and zero-filling the vacated slot instead collapses
    * tracking (reach error ~460 mm vs the correct ~90 mm). Verified against the
-   * Python reference (replay_probe.py / meshcat_reach_viewer.py).
+   * Python reference (replay_probe.py / locomotion_transformer.py).
    */
   private static rollBack(arr: Float32Array, width: number): void {
     const first = arr.slice(0, width) // copy the oldest row before it's overwritten
@@ -102,11 +119,10 @@ export class ReachPolicy {
       return { action: new Float32Array(ACT_DIM), plannerPred: armPos.slice() }
     }
 
-    // Roll obs/act/cmd histories back by one (np.roll wrap — the oldest row wraps
-    // into the last slot, NOT zero-filled), then append the current frame below.
+    // Roll obs/act histories back by one (np.roll wrap — oldest row wraps into the
+    // last slot, NOT zero-filled), then append the current frame below.
     ReachPolicy.rollBack(this.histObs, OBS_DIM)
     ReachPolicy.rollBack(this.histAct, ACT_DIM)
-    ReachPolicy.rollBack(this.histCmd, CMD_DIM)
     // The valid mask shifts and the newest slot is always valid (=1). It must NOT
     // wrap its oldest value in — the current frame is always present/valid.
     this.histValid.copyWithin(0, 1)
@@ -117,8 +133,18 @@ export class ReachPolicy {
       this.histObs[obsOff + i] = armPos[i] * POS_SCALE
       this.histObs[obsOff + ACT_DIM + i] = armVel[i] * VEL_SCALE
     }
-    const cmdOff = (H - 1) * CMD_DIM
-    for (let i = 0; i < CMD_DIM; i++) this.histCmd[cmdOff + i] = eeTarget[i]
+    // history_act: newest slot = PREVIOUS action, set BEFORE inference (deploy path).
+    const actOff = (H - 1) * ACT_DIM
+    for (let i = 0; i < ACT_DIM; i++) this.histAct[actOff + i] = this.prevAction[i]
+
+    // Command: broadcast the CURRENT target into every valid slot (zero invalid),
+    // matching `_update_online_history_command_buffer_np(use_current_command_for_history=True)`.
+    // (Not a rolled trail — dragging must not feed the IDM a smear of old targets.)
+    for (let h = 0; h < H; h++) {
+      const off = h * CMD_DIM
+      const valid = this.histValid[h] === 1
+      for (let i = 0; i < CMD_DIM; i++) this.histCmd[off + i] = valid ? eeTarget[i] : 0
+    }
 
     const feeds: Record<string, ort.Tensor> = {
       history_obs: new ort.Tensor('float32', this.histObs, [1, H, OBS_DIM]),
@@ -141,9 +167,8 @@ export class ReachPolicy {
       plannerPred[i] = predData[i] / POS_SCALE
     }
 
-    // Write the produced action into the last history slot (matches reference).
-    const actOff = (H - 1) * ACT_DIM
-    for (let i = 0; i < ACT_DIM; i++) this.histAct[actOff + i] = action[i]
+    // Stash this action as `prevAction` for the NEXT step's history_act newest slot.
+    this.prevAction.set(action)
 
     return { action, plannerPred }
   }

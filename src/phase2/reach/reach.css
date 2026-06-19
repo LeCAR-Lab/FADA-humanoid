@@ -112,11 +112,45 @@
 }
 
 .reach__fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
   padding: var(--sp-6);
   border: 1px dashed var(--rule-dark-strong);
   border-radius: var(--radius);
   color: var(--chalk-soft);
   text-align: center;
+}
+.reach__fallback-head {
+  margin: 0;
+  font-weight: 600;
+  color: var(--chalk);
+}
+.reach__fallback-hint {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 0.9rem;
+}
+.reach__fallback-detail {
+  max-width: 60ch;
+  font-size: 0.8rem;
+}
+.reach__fallback-detail summary {
+  cursor: pointer;
+  color: var(--chalk-soft);
+}
+.reach__fallback-detail code {
+  display: block;
+  margin-top: var(--sp-2);
+  padding: var(--sp-2);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--void-raised);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--c-baseline);
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 /* ── Side panel: legend + live readout ──────────────────────────────────── */
@@ -174,6 +208,7 @@
 .reach__dot--adapted { background: var(--c-adapted); }
 .reach__dot--target { background: var(--c-zeroshot); }
 .reach__dot--ghost { background: #c8c0b4; opacity: 0.5; }
+.reach__dot--ee { background: #22b8cf; }
 
 .reach__joints {
   display: flex;

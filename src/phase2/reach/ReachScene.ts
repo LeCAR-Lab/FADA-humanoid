@@ -13,11 +13,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { MESH_ATTACH, MESH_URL, BASE_HEIGHT } from './reachModel'
 import { HIT_RADIUS } from './reachData'
+import { fetchAsset } from './diagnostics'
 import type { ArmFrame, BodyXform } from './ReachArm'
 
 const TRAIL_LEN = 48
 const TARGET_RADIUS = 0.03
 const EE_RADIUS = 0.022
+
+// EE-marker palette — deliberately NOT red/green (those mean before/after here).
+// The end-effector marker is a cyan dot that brightens to white-cyan when it lands
+// inside the hit radius of the target.
+const EE_COLOR = '#22b8cf' // cyan — end-effector, off target
+const EE_COLOR_HIT = '#a5f3fc' // bright cyan — end-effector on target
+// Camera home pose (so Reset can restore the view, not just the EE target).
+const CAM_POS: [number, number, number] = [0.9, -0.9, 1.95]
+const CAM_TARGET: [number, number, number] = [0.0, 0.1, 1.55]
 
 /** Resolve a CSS custom property to a hex color usable by three.js. */
 function cssColor(varName: string, fallback: string): THREE.Color {
@@ -59,16 +69,22 @@ export class ReachScene {
     private readonly canvas: HTMLCanvasElement,
     private readonly opts: ReachSceneOptions,
   ) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+    // Require a real WebGL2 context. Some machines (no GPU accel, blocklisted
+    // drivers, locked-down browsers) only offer WebGL1 or none — three.js would
+    // otherwise throw a cryptic context error; fail fast with a clear message that
+    // diagnostics.ts classifies as a 'webgl' failure.
+    const gl2 = canvas.getContext('webgl2')
+    if (!gl2) throw new Error('WebGLRenderer: WebGL2 context not available on this device')
+    this.renderer = new THREE.WebGLRenderer({ canvas, context: gl2, antialias: true, alpha: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setClearColor(0x000000, 0)
 
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.01, 50)
     this.camera.up.set(0, 0, 1) // MuJoCo is Z-up
-    this.camera.position.set(0.9, -0.9, 1.95)
+    this.camera.position.set(...CAM_POS)
 
     this.controls = new OrbitControls(this.camera, canvas)
-    this.controls.target.set(0.0, 0.1, 1.55)
+    this.controls.target.set(...CAM_TARGET)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.12
     this.controls.minDistance = 0.4
@@ -94,6 +110,10 @@ export class ReachScene {
     grid.rotation.x = Math.PI / 2 // grid is XZ by default; lay it in XY for Z-up
     this.scene.add(grid)
 
+    // Front-of-robot marker: the torso faces +X. A flat arrow on the ground +
+    // a "FRONT" label so the viewer can orient the fixed torso after orbiting.
+    this.addFrontMarker()
+
     // Target sphere (EE command) — draggable.
     const targetColor = cssColor('--c-zeroshot', '#f5a623')
     this.targetSphere = new THREE.Mesh(
@@ -102,11 +122,20 @@ export class ReachScene {
     )
     this.scene.add(this.targetSphere)
 
-    // EE actual sphere.
+    // EE actual sphere — cyan (a colour reserved for the end-effector, distinct
+    // from the red/green that denote before/after adaptation), brightens on target.
+    // The wrist-body origin sits inside the arm mesh, so render it always-on-top
+    // (depthTest off + high renderOrder) as a HUD-style marker pinned to the hand.
     this.eeSphere = new THREE.Mesh(
       new THREE.SphereGeometry(EE_RADIUS, 18, 14),
-      new THREE.MeshStandardMaterial({ color: cssColor('--c-adapted', '#30a46c') }),
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(EE_COLOR),
+        emissive: new THREE.Color(EE_COLOR),
+        emissiveIntensity: 0.3,
+        depthTest: false,
+      }),
     )
+    this.eeSphere.renderOrder = 10
     this.scene.add(this.eeSphere)
 
     // EE trail.
@@ -130,7 +159,7 @@ export class ReachScene {
     const geoms = new Map<string, THREE.BufferGeometry>()
     await Promise.all(
       Array.from(new Set(MESH_ATTACH.map((m) => m.mesh))).map(async (name) => {
-        const buf = await (await fetch(MESH_URL(name))).arrayBuffer()
+        const buf = await (await fetchAsset(MESH_URL(name))).arrayBuffer()
         const geo = loader.parse(buf)
         geo.computeVertexNormals()
         geoms.set(name, geo)
@@ -179,17 +208,87 @@ export class ReachScene {
     return { group, meshes }
   }
 
+  /**
+   * Marker showing which way the fixed torso faces (+X = forward). Placed on a
+   * horizontal plane THROUGH THE TORSO (z ≈ BASE_HEIGHT), not on the distant
+   * floor, so it stays inside the default working-zone framing. A flat emissive
+   * arrow pointing +X plus a small "FRONT" sprite let the viewer re-orient the
+   * fixed torso after orbiting.
+   */
+  private addFrontMarker(): void {
+    const markerColor = new THREE.Color('#9c8f7e')
+    const group = new THREE.Group()
+    const mat = () =>
+      new THREE.MeshStandardMaterial({
+        color: markerColor, emissive: markerColor, emissiveIntensity: 0.5,
+        transparent: true, opacity: 0.9, depthWrite: false,
+      })
+
+    // Arrow shaft + head as flat shapes lying in the XY plane, pointing +X.
+    // Kept small so it's a subtle orientation cue, not a scene-dominating object.
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.008, 0.003), mat())
+    shaft.position.set(0.14, 0, 0)
+    group.add(shaft)
+
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.06, 3), mat())
+    head.rotation.z = -Math.PI / 2 // cone points +Y by default → tip to +X, flat in XY
+    head.position.set(0.25, 0, 0)
+    group.add(head)
+
+    const label = this.makeTextSprite('FRONT')
+    if (label) {
+      label.scale.set(0.16, 0.04, 1)
+      label.position.set(0.34, 0, 0.04)
+      group.add(label)
+    }
+
+    // Emanate from the pelvis (pillar top, z = BASE_HEIGHT) pointing forward, so it
+    // visually anchors to the fixed base rather than floating in empty space.
+    group.position.set(0.04, 0, BASE_HEIGHT)
+    this.scene.add(group)
+  }
+
+  /** Build a small canvas-texture text sprite (cheap, no font loading). */
+  private makeTextSprite(text: string): THREE.Sprite | null {
+    const c = document.createElement('canvas')
+    c.width = 256
+    c.height = 64
+    const ctx = c.getContext('2d')
+    if (!ctx) return null
+    ctx.fillStyle = 'rgba(0,0,0,0)'
+    ctx.fillRect(0, 0, c.width, c.height)
+    ctx.font = 'bold 44px ui-monospace, monospace'
+    ctx.fillStyle = '#cdbfae'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, c.width / 2, c.height / 2)
+    const tex = new THREE.CanvasTexture(c)
+    tex.anisotropy = 2
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }))
+    sprite.scale.set(0.26, 0.065, 1)
+    return sprite
+  }
+
+  /** Restore the camera to its home framing (used by Reset). */
+  resetView(): void {
+    this.camera.position.set(...CAM_POS)
+    this.controls.target.set(...CAM_TARGET)
+    this.controls.update()
+  }
+
   /** Position the solid + ghost meshes from the latest MuJoCo body transforms. */
   update(frame: ArmFrame): void {
     if (this.solid) this.applyXforms(this.solid, frame.solid)
     if (this.ghost) this.applyXforms(this.ghost, frame.ghost)
 
-    // EE actual sphere — color by hit/miss.
+    // EE actual sphere — cyan, brightening when it lands on the target (NOT
+    // red/green, which here mean the before/after arms).
     this.eeSphere.position.set(frame.eePos[0], frame.eePos[1], frame.eePos[2])
     const onTarget = frame.eeErr < HIT_RADIUS
-    ;(this.eeSphere.material as THREE.MeshStandardMaterial).color = onTarget
-      ? cssColor('--c-adapted', '#30a46c')
-      : cssColor('--c-baseline', '#e5484d')
+    const eeMat = this.eeSphere.material as THREE.MeshStandardMaterial
+    eeMat.color.set(onTarget ? EE_COLOR_HIT : EE_COLOR)
+    eeMat.emissive.set(onTarget ? EE_COLOR_HIT : EE_COLOR)
+    eeMat.emissiveIntensity = onTarget ? 0.6 : 0.3
 
     this.pushTrail(frame.eePos)
   }

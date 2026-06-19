@@ -134,12 +134,17 @@ export class ReachController {
     }
   }
 
-  /** Reset arms to the default pose AND return the target to the fixed home pose. */
+  /**
+   * Reset arms to the default pose, return the target to the fixed home pose, AND
+   * restore both camera views to their home framing.
+   */
   reset(): void {
     this.autoTour = false
     this.target = [...DEFAULT_TARGET]
     this.beforeArm?.reset()
     this.afterArm?.reset()
+    this.beforeScene?.resetView()
+    this.afterScene?.resetView()
     this.syncTargetToScenes()
     this.renderOnce()
   }
