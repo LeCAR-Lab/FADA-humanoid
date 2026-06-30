@@ -12,7 +12,7 @@ export const AUTHORS: Author[] = [
   { name: 'Angchen Xie', affiliations: [1], equalContrib: true, url: 'https://angchenxie.github.io/' },
   { name: 'Nikhil Sobanbabu', affiliations: [1], equalContrib: true, url: 'https://nike353.github.io/' },
   { name: 'Ishayu Shikhare', affiliations: [1], url: 'https://ishayushikhare.com/' },
-  { name: 'Alan Wang', affiliations: [1] }, // TODO: add personal site link if available
+  { name: 'Alan Wang', affiliations: [1], url: 'https://www.linkedin.com/in/alanwang137825/' },
   { name: 'Max Simchowitz', affiliations: [1], url: 'https://msimchowitz.github.io/' },
   { name: 'Guanya Shi', affiliations: [1], url: 'https://www.gshi.me/' },
 ]
