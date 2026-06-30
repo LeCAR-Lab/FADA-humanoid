@@ -30,7 +30,7 @@ export interface TaskMeta {
 export interface ProjectLink {
   label: string
   href: string
-  icon: 'paper' | 'arxiv' | 'code' | 'video'
+  icon: 'paper' | 'arxiv' | 'code'
   disabled: boolean
 }
 

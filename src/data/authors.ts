@@ -1,4 +1,5 @@
 import type { Affiliation, Author, ProjectLink } from './types'
+import { assetUrl } from '../lib/assetUrl'
 
 export const AFFILIATIONS: Affiliation[] = [
   { id: 1, name: 'Carnegie Mellon University', url: 'https://www.cmu.edu/' },
@@ -18,14 +19,13 @@ export const AUTHORS: Author[] = [
 ]
 
 /**
- * Header link buttons. All hrefs are placeholders for now (disabled), so only
- * the URL strings need to change once the paper / code go public.
+ * Header link buttons. Paper points at the PDF hosted in /public; arXiv at the
+ * public abstract page. Code stays disabled until the repo is public.
  */
 export const PROJECT_LINKS: ProjectLink[] = [
-  { label: 'Paper', href: '#', icon: 'paper', disabled: true },
-  { label: 'arXiv', href: '#', icon: 'arxiv', disabled: true },
+  { label: 'Paper', href: assetUrl('paper/FADA.pdf'), icon: 'paper', disabled: false },
+  { label: 'arXiv', href: 'https://arxiv.org/abs/2606.28476', icon: 'arxiv', disabled: false },
   { label: 'Code', href: '#', icon: 'code', disabled: true },
-  { label: 'Video', href: '#', icon: 'video', disabled: true },
 ]
 
 export const LAB = {

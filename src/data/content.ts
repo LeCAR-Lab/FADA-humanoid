@@ -55,10 +55,14 @@ export const ARCHITECTURE_BODY =
 export const DATA_COLLECTION_BODY =
   'FADA adapts from ordinary target-domain rollouts collected by executing the source-trained policy. Supervision is just the paired proprioceptive observations and executed actions from the same rollout windows — no reward, labeling, privileged state, or off-policy dataset is required.'
 
-// Venue intentionally omitted until acceptance. Swap to the final @inproceedings
-// entry (with booktitle/year) once the paper is public.
-export const BIBTEX = `@misc{fada,
-  title  = {FADA: Few-Shot Domain Adaptation via Dynamics Alignment for Humanoid Control},
-  author = {Xie, Angchen and Sobanbabu, Nikhil and Shikhare, Ishayu and Wang, Alan and Simchowitz, Max and Shi, Guanya},
-  note   = {Preprint — link coming soon},
+// arXiv preprint entry (2606.28476). Swap to the final @inproceedings entry
+// (with booktitle/year) once the paper is accepted at a venue.
+export const BIBTEX = `@misc{fada2026,
+  title         = {FADA: Few-Shot Domain Adaptation via Dynamics Alignment for Humanoid Control},
+  author        = {Xie, Angchen and Sobanbabu, Nikhil and Shikhare, Ishayu and Wang, Alan and Simchowitz, Max and Shi, Guanya},
+  year          = {2026},
+  eprint        = {2606.28476},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+  url           = {https://arxiv.org/abs/2606.28476},
 }`

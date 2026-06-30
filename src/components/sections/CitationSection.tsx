@@ -9,7 +9,7 @@ export function CitationSection() {
       id="citation"
       eyebrow="Cite"
       title="Citation"
-      intro="If you find FADA useful, please cite our work. (arXiv entry coming soon.)"
+      intro="If you find FADA useful, please cite our work."
       width="text"
     >
       <div className="citation__block">

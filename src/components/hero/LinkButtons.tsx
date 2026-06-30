@@ -39,13 +39,6 @@ function Icon({ kind }: { kind: ProjectLink['icon'] }) {
           />
         </svg>
       )
-    case 'video':
-      return (
-        <svg {...common}>
-          <rect x="3" y="6" width="13" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M16 10l5-2.5v9L16 14z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-        </svg>
-      )
   }
 }
 
